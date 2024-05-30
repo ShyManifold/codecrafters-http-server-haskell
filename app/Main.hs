@@ -40,7 +40,7 @@ main = do
 
         let response = case BC.words requestData of
                 (_:"/":_) -> "HTTP/1.1 200 OK\r\n\r\n" 
-                _ -> "HTTP/1.1 400 OK\r\n\r\n"
+                _ -> "HTTP/1.1 404 OK\r\n\r\n"
 
         -- Handle the clientSocket as needed...
         _ <- send clientSocket response
