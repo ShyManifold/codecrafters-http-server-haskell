@@ -5,14 +5,14 @@ module Main (main) where
 import Control.Monad (forever)
 import qualified Data.ByteString.Char8 as BC
 import Network.Socket
-import Network.Socket.ByteString (send)
+import Network.Socket.ByteString (send, recv)
 import System.IO (BufferMode (..), hSetBuffering, stdout)
+
 main :: IO ()
 main = do
     hSetBuffering stdout LineBuffering
 
 
-    -- Uncomment this block to pass first stage
     let host = "127.0.0.1"
         port = "4221"
     
@@ -36,7 +36,13 @@ main = do
 
         BC.putStrLn $ "Accepted connection from " <> BC.pack (show clientAddr) <> "."
 
+        requestData <- recv clientSocket 1024
+
+        let response = case BC.words requestData of
+                (_:"/":_) -> "HTTP/1.1 200 OK\r\n\r\n" 
+                _ -> "HTTP/1.1 400 OK\r\n\r\n"
+
         -- Handle the clientSocket as needed...
-        _ <- send clientSocket "HTTP/1.1 200 OK\r\n\r\n"
+        _ <- send clientSocket response
 
         close clientSocket
