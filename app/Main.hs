@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# OPTIONS_GHC -Wno-incomplete-uni-patterns #-}
 
 module Main (main) where
 
@@ -7,6 +8,7 @@ import qualified Data.ByteString.Char8 as BC
 import Network.Socket
 import Network.Socket.ByteString (send, recv)
 import System.IO (BufferMode (..), hSetBuffering, stdout)
+import HttpRequest ( parseHttpRequest, respondRequest ) 
 
 main :: IO ()
 main = do
@@ -40,11 +42,13 @@ main = do
 
         BC.putStrLn $ "Accepted connection from " <> BC.pack (show clientAddr) <> "."
 
-        requestData <- recv clientSocket 1024
+        requestData <- recv clientSocket 4096
 
-        let response = case BC.words requestData of
-                (_:"/":_) -> "HTTP/1.1 200 OK\r\n\r\n" 
-                _ -> "HTTP/1.1 404 Not Found\r\n\r\n"
+        BC.putStrLn $ "Received: " <> requestData
+
+        let response = respondRequest $ parseHttpRequest requestData
+
+        BC.putStrLn $ "Responded with: " <> response <> "\n--End of response--"
 
         -- Handle the clientSocket as needed...
         _ <- send clientSocket response
