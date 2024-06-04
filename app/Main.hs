@@ -8,8 +8,8 @@ import qualified Data.ByteString.Char8 as BC
 import Network.Socket
 import Network.Socket.ByteString (send, recv)
 import System.IO (BufferMode (..), hSetBuffering, stdout)
-import HttpRequest ( parseHttpRequest, respondRequest ) 
-
+import HttpRequest
+import HttpResponses
 main :: IO ()
 main = do
     hSetBuffering stdout LineBuffering
@@ -46,7 +46,13 @@ main = do
 
         BC.putStrLn $ "Received: " <> requestData
 
-        let response = respondRequest $ parseHttpRequest requestData
+        let parsedRequest = parseHttpRequest requestData
+
+        print "Parsed request"
+
+        print parsedRequest
+
+        let response = respondRequest parsedRequest
 
         BC.putStrLn $ "Responded with: " <> response <> "\n--End of response--"
 
