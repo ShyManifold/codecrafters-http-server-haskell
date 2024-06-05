@@ -1,3 +1,8 @@
+{-# OPTIONS_GHC -Wall #-}
+{-# OPTIONS_GHC -Wno-type-defaults #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RecordWildCards #-}
+
 module ConfigurationParser ( ServerOptions (..),
                              getServerOptions) where
 
