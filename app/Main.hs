@@ -1,5 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# OPTIONS_GHC -Wno-incomplete-uni-patterns #-}
+{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
+{-# HLINT ignore "Use newtype instead of data" #-}
 
 module Main (main) where
 
@@ -13,6 +15,8 @@ import Network.Socket.ByteString (send, recv)
 import System.IO (BufferMode (..), hSetBuffering, stdout)
 import HttpRequest
 import HttpResponses
+import ConfigurationParser
+
 main :: IO ()
 main = do
     hSetBuffering stdout LineBuffering
@@ -37,6 +41,10 @@ main = do
 
     listen serverSocket 5
 
+    -- Parse the command line arguments setting the server configuration
+
+    serverConfig <- getServerOptions
+
     -- Accept connections and handle them forever
 
     forever $ do
@@ -45,11 +53,11 @@ main = do
 
         BC.putStrLn $ "Accepted connection from " <> BC.pack (show clientAddr) <> "."
 
-        forkIO $ handleConnection clientSocket
+        forkIO $ handleConnection clientSocket serverConfig
 
 
-handleConnection :: Socket -> IO ()
-handleConnection soc = do
+handleConnection :: Socket -> ServerOptions-> IO ()
+handleConnection soc serverOptions = do
 
     requestData <- recv soc 4096
 
@@ -59,7 +67,7 @@ handleConnection soc = do
 
     print $ "Parsed request:\n" <> show parsedRequest
 
-    response <- respondRequest parsedRequest
+    response <- respondRequest parsedRequest serverOptions
 
     BC.putStrLn $ "Responded with: " <> response <> "\n--End of response--"
 
