@@ -4,6 +4,9 @@
 module Main (main) where
 
 import Control.Monad (forever)
+
+import Control.Concurrent (forkIO)
+
 import qualified Data.ByteString.Char8 as BC
 import Network.Socket
 import Network.Socket.ByteString (send, recv)
@@ -17,7 +20,7 @@ main = do
 
     let host = "127.0.0.1"
         port = "4221"
-    
+
     BC.putStrLn $ "Listening on " <> BC.pack host <> ":" <> BC.pack port
 
     -- Get address information for the given host and port
@@ -42,21 +45,25 @@ main = do
 
         BC.putStrLn $ "Accepted connection from " <> BC.pack (show clientAddr) <> "."
 
-        requestData <- recv clientSocket 4096
+        forkIO $ handleConnection clientSocket
 
-        BC.putStrLn $ "Received: " <> requestData
 
-        let parsedRequest = parseHttpRequest requestData
+handleConnection :: Socket -> IO ()
+handleConnection soc = do
 
-        print "Parsed request"
+    requestData <- recv soc 4096
 
-        print parsedRequest
+    BC.putStrLn $ "Received: " <> requestData
 
-        let response = respondRequest parsedRequest
+    let parsedRequest = parseHttpRequest requestData
 
-        BC.putStrLn $ "Responded with: " <> response <> "\n--End of response--"
+    print $ "Parsed request:\n" <> show parsedRequest
 
-        -- Handle the clientSocket as needed...
-        _ <- send clientSocket response
+    response <- respondRequest parsedRequest
 
-        close clientSocket
+    BC.putStrLn $ "Responded with: " <> response <> "\n--End of response--"
+
+    -- Handle the clientSocket as needed...
+    _ <- send soc response
+
+    close soc
