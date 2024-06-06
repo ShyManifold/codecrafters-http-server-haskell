@@ -2,6 +2,8 @@
 {-# OPTIONS_GHC -Wno-type-defaults #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
+{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
+{-# HLINT ignore "Unused LANGUAGE pragma" #-}
 
 module ConfigurationParser ( ServerOptions (..),
                              getServerOptions) where
@@ -16,9 +18,10 @@ parseServerOptions =
         strOption
             (  long "directory"
             <> short 'd'
-            <> value "./"
+            <> value "."
             <> help "Absolute path to the static files directory")
 
+opts :: ParserInfo ServerOptions
 opts = info (parseServerOptions <**> helper)
       ( fullDesc
      <> progDesc "Runs the http server"
