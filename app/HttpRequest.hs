@@ -147,16 +147,17 @@ getValueIfHasHeader t (h:rest) =
 
 lowerByteString::ByteString->ByteString
 lowerByteString = BC.map toLower
-
------------------------------- Exception instances    
-
+------------------------------------------------------------------------
+------------------------------ Exception instances ---------------------
+------------------------------------------------------------------------
 data HeaderTypeNotFoundError = HeaderTypeNotFoundError
     deriving (Show)
 
 instance Exception HeaderTypeNotFoundError
 
------------------------------- Show instances
-
+------------------------------------------------------------------------
+------------------------------ Show instances --------------------------
+------------------------------------------------------------------------
 instance Show HttpRequest where
     show :: HttpRequest -> String
     show (HttpRequest reqStatus reqHeaders reqBody) =
