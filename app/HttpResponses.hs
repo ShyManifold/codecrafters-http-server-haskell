@@ -95,5 +95,5 @@ uploadFileResponse (HttpRequest reqStatusLine _ (HttpBody reqBody)) dir = do
             print $ "Error: " <> show ex
             pure "HTTP/1.1 500 Internal Server Error\r\n\r\n" -- Or any error response you prefer
         Right _ ->
-            pure "HTTP/1.1 201 File Created Succesfully\r\n\r\n"
+            pure "HTTP/1.1 201 Created\r\n\r\n"
 
