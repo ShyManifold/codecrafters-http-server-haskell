@@ -6,7 +6,7 @@
 module HttpResponses (respondRequest) where
 
 import qualified Data.ByteString.Char8 as BC
-import Data.ByteString (ByteString)
+import Data.ByteString (ByteString, isInfixOf)
 import HttpRequest
 
 import Control.Exception (try, IOException)
@@ -14,7 +14,7 @@ import Control.Exception (try, IOException)
 import ConfigurationParser
 
 respondRequest :: HttpRequest -> ServerOptions -> IO ByteString
-respondRequest req config = 
+respondRequest req config =
     case method $ status req of
         "GET" -> handleGetRequest req config
         "POST" -> handlePostRequest req config
@@ -28,15 +28,22 @@ handleGetRequest::HttpRequest -> ServerOptions -> IO ByteString
 handleGetRequest req config =
     case path (status req) of
         "/" -> pure "HTTP/1.1 200 OK\r\n\r\n"
-        p | "/echo/" `BC.isPrefixOf` p ->pure $ echoResponse (status req)
+        p | "/echo/" `BC.isPrefixOf` p ->pure $ echoResponse req
         p | "/user-agent" `BC.isPrefixOf` p -> pure $ userAgentResponse req
         p | "/file" `BC.isPrefixOf` p -> sendFileResponse (status req) (serverDirectory config)
         _ -> pure "HTTP/1.1 404 Not Found\r\n\r\n"
 
-echoResponse :: HttpStatus -> ByteString
-echoResponse httpStatus =
-     "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: "<> echoLength <> "\r\n\r\n" <> echo
+echoResponse :: HttpRequest -> ByteString
+echoResponse (HttpRequest httpStatus httpHeaders _) =
+     if hasGzipEncoding
+        then "HTTP/1.1 200 OK\r\nContent-Encoding: gzip\r\nContent-Type: text/plain\r\nContent-Length: "<> echoLength <> "\r\n\r\n" <> echo
+        else "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: "<> echoLength <> "\r\n\r\n" <> echo
      where
+        (hasAcceptEncodingHeader, maybeHeaderValue) = getValueIfHasHeader AcceptEncoding httpHeaders
+        hasGzipEncoding =
+            hasAcceptEncodingHeader && (case maybeHeaderValue of
+                    Just hValue -> "gzip" `isInfixOf` hValue
+                    Nothing -> False)
         echo = BC.drop 6 (path httpStatus)
         echoLength = BC.pack . show $ BC.length (path httpStatus) - 6 --Subtract /echo/
 
@@ -58,9 +65,9 @@ sendFileResponse httpStatus dir = do
     where
         filepath = dir <> ( BC.unpack . BC.drop 6 $ path httpStatus)
         makeSendFileResponse::Int -> String->ByteString
-        makeSendFileResponse len contents = 
+        makeSendFileResponse len contents =
             BC.pack $ "HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: " <> show len <> "\r\n\r\n" <> contents
- 
+
 fileContentsIfExists :: FilePath -> IO (Bool, Maybe String)
 fileContentsIfExists filepath = do
     result <- try $ readFile filepath
@@ -76,7 +83,7 @@ fileContentsIfExists filepath = do
 ------------------------------------------------------------------------------------------------------
 
 handlePostRequest::HttpRequest -> ServerOptions -> IO ByteString
-handlePostRequest req config = 
+handlePostRequest req config =
     case path (status req) of
         p | "/file" `BC.isPrefixOf` p -> uploadFileResponse req (serverDirectory config)
         _ -> pure "HTTP/1.1 404 Not Found\r\n\r\n"

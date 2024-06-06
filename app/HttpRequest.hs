@@ -4,17 +4,20 @@
 {-# LANGUAGE InstanceSigs #-}
 
 module HttpRequest ( HttpRequest(..),
-                     HttpStatus(..), 
+                     HttpStatus(..),
                      HttpBody(..),
                      HeaderType(..),
-                     parseHttpRequest, 
-                     getHeaderValue) where
+                     parseHttpRequest,
+                     getHeaderValue,
+                     getValueIfHasHeader) where
 
 import qualified Data.ByteString.Char8 as BC
 import Data.ByteString (ByteString, breakSubstring, isPrefixOf)
+import Data.Char (toLower)
+
 import Control.Exception (Exception, throw )
 
-data HttpRequest = HttpRequest { status :: HttpStatus, headers :: [HttpHeader], body::HttpBody} 
+data HttpRequest = HttpRequest { status :: HttpStatus, headers :: [HttpHeader], body::HttpBody}
 
 data HttpStatus = HttpStatus { method :: ByteString
                              , path :: ByteString
@@ -24,13 +27,15 @@ data HttpStatus = HttpStatus { method :: ByteString
 newtype HttpBody = HttpBody ByteString
 
 data HttpHeader = HttpHeader { headerType::HeaderType
-                             , headerValue::ByteString} 
+                             , headerValue::ByteString}
 
 data HeaderType
     = UserAgent
     | Host
     | Connection
-    | Accept deriving (Eq)
+    | AcceptEncoding
+    | Accept
+    | Other deriving (Eq)
 -- Http 1.1 header types
 --General Headers:
 --
@@ -119,18 +124,29 @@ parseHeader header =
         hValue = BC.dropWhile (== ' ') (BC.drop 1 rest) -- Drop the space after ':'
     in
         case hType of
-            t | "User-Agent" `isPrefixOf` t -> HttpHeader UserAgent hValue
-            t | "Host" `isPrefixOf` t -> HttpHeader Host hValue
-            t | "Connection" `isPrefixOf` t -> HttpHeader Connection hValue
-            _ -> HttpHeader Accept hValue -- Default to Accept header for unknown headers
+            t | "user-agent" `isPrefixOf` lowerByteString t -> HttpHeader UserAgent hValue
+            t | "host" `isPrefixOf` lowerByteString t -> HttpHeader Host hValue
+            t | "connection" `isPrefixOf` lowerByteString t -> HttpHeader Connection hValue
+            t | "accept-encoding" `isPrefixOf` lowerByteString t -> HttpHeader AcceptEncoding hValue
+            _ -> HttpHeader Other hValue -- Default to Other header for unknown headers
 
 getHeaderValue::HeaderType->[HttpHeader]-> ByteString
 getHeaderValue _ [] = throw HeaderTypeNotFoundError
 getHeaderValue t (h:rest) =
-    case h of 
+    case h of
         (HttpHeader httpType httpValue) | httpType == t -> httpValue
         _ -> getHeaderValue t rest
-         
+
+getValueIfHasHeader::HeaderType->[HttpHeader]->(Bool, Maybe ByteString)
+getValueIfHasHeader _ [] = (False, Nothing)
+getValueIfHasHeader t (h:rest) =
+    case h of
+        (HttpHeader httpType httpValue) | httpType == t -> (True, Just httpValue)
+        _ -> getValueIfHasHeader t rest
+
+
+lowerByteString::ByteString->ByteString
+lowerByteString = BC.map toLower
 
 ------------------------------ Exception instances    
 
@@ -169,5 +185,7 @@ instance Show HeaderType where
     show :: HeaderType -> String
     show UserAgent = "UserAgent"
     show Accept = "Accept"
+    show AcceptEncoding = "AcceptEncoding"
     show Host = "Host"
     show Connection = "Connection"
+    show Other = "Other"
