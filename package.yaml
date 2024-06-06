@@ -25,6 +25,7 @@ dependencies:
   - network # establish a simple TCP network
   - bytestring # useful to send bytes over the network
   - optparse-applicative # useful to parse command line arguments
+  - zlib # useful for quick and easy compression of files
 executables:
   hs-http-server-clone-exe:
     main: Main.hs

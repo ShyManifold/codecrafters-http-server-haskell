@@ -13,6 +13,8 @@ import Control.Exception (try, IOException)
 
 import ConfigurationParser
 
+import DataCompresion
+
 respondRequest :: HttpRequest -> ServerOptions -> IO ByteString
 respondRequest req config =
     case method $ status req of
@@ -36,7 +38,7 @@ handleGetRequest req config =
 echoResponse :: HttpRequest -> ByteString
 echoResponse (HttpRequest httpStatus httpHeaders _) =
      if hasGzipEncoding
-        then "HTTP/1.1 200 OK\r\nContent-Encoding: gzip\r\nContent-Type: text/plain\r\nContent-Length: "<> echoLength <> "\r\n\r\n" <> echo
+        then "HTTP/1.1 200 OK\r\nContent-Encoding: gzip\r\nContent-Type: text/plain\r\nContent-Length: "<> encodedLength <> "\r\n\r\n" <> encodedEcho
         else "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: "<> echoLength <> "\r\n\r\n" <> echo
      where
         (hasAcceptEncodingHeader, maybeHeaderValue) = getValueIfHasHeader AcceptEncoding httpHeaders
@@ -46,6 +48,8 @@ echoResponse (HttpRequest httpStatus httpHeaders _) =
                     Nothing -> False)
         echo = BC.drop 6 (path httpStatus)
         echoLength = BC.pack . show $ BC.length (path httpStatus) - 6 --Subtract /echo/
+        encodedEcho = encode echo
+        encodedLength = BC.pack . show $ BC.length encodedEcho
 
 userAgentResponse::HttpRequest -> ByteString
 userAgentResponse (HttpRequest _ h _) =
