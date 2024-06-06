@@ -93,7 +93,7 @@ data HeaderType
 
 parseHttpRequest :: ByteString -> HttpRequest
 parseHttpRequest raw =
-  HttpRequest (HttpStatus m p v) h (HttpBody $ BC.drop 8 bodyString)
+  HttpRequest (HttpStatus m p v) h (HttpBody $ BC.drop 4 bodyString)
   where
     (statusLine_, rest) = breakSubstring "\r\n" raw
     (m:p:v:_) = BC.words statusLine_
